@@ -7,7 +7,6 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     
@@ -422,17 +421,6 @@
             gap: 10px;
         }
 
-        .export-button-laporan {
-            background-color: var(--secondary-color-red);
-            color: white; 
-            border: none; 
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
         .export-button-excel {
             background-color: var(--primary-color-green);
             color: white; 
@@ -825,9 +813,9 @@
                 </header>
                 
                 <div class="laporan-container">
+                    
                     <div class="laporan-header">
-                        <button class="export-button-laporan">Export PDF</button>
-                        <button class="export-button-excel">Export Excel</button>
+                        <button class="export-button-excel" id="export-excel-button">Export Excel</button>
                     </div>
 
                     <h2>LAPORAN LABA RUGI</h2>
@@ -940,6 +928,57 @@
             return new Date().toLocaleDateString('id-ID', options);
         }
 
+        // --- FUNGSI EKSPORT (Fungsi baru untuk Export Excel/CSV) ---
+        function exportLabaRugiToCSV() {
+            const tanggal = document.getElementById('laporan-tanggal').textContent;
+            // Menghapus 'Rp. ' dan titik pemisah ribuan agar menjadi angka murni
+            const cleanRupiah = (id) => document.getElementById(id).textContent.replace('Rp. ', '').replace(/\./g, '');
+            
+            const totalPemasukan = cleanRupiah('laporan-total-pemasukan');
+            const totalPengeluaran = cleanRupiah('laporan-total-pengeluaran');
+            const labaBersih = cleanRupiah('laporan-laba-bersih');
+            const margin = document.getElementById('laporan-margin-row').querySelector('strong').textContent.replace('%', '');
+            
+            const pemasukanJualLele = cleanRupiah('laporan-jual-lele');
+            const pemasukanJualMinuman = cleanRupiah('laporan-jual-minuman');
+            const pengeluaranBahan = cleanRupiah('laporan-pengeluaran-bahan');
+            const pengeluaranGas = cleanRupiah('laporan-pengeluaran-gas');
+            const pengeluaranOperasional = cleanRupiah('laporan-pengeluaran-operasional');
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Laporan Laba Rugi Pecel Lele\n";
+            csvContent += `Periode,${tanggal}\n\n`;
+            
+            // Header
+            csvContent += "Deskripsi,Jumlah\n";
+            
+            // Pemasukan
+            csvContent += "PEMASUKAN,\n";
+            csvContent += `Penjualan Pecel Lele,${pemasukanJualLele}\n`;
+            csvContent += `Penjualan Minuman,${pemasukanJualMinuman}\n`;
+            csvContent += `Total Pemasukan,${totalPemasukan}\n\n`;
+            
+            // Pengeluaran
+            csvContent += "PENGELUARAN,\n";
+            csvContent += `Bahan Baku,${pengeluaranBahan}\n`;
+            csvContent += `Gas,${pengeluaranGas}\n`;
+            csvContent += `Operasional,${pengeluaranOperasional}\n`;
+            csvContent += `Total Pengeluaran,${totalPengeluaran}\n\n`;
+            
+            // Laba Bersih
+            csvContent += "LABA BERSIH,\n";
+            csvContent += `LABA BERSIH,${labaBersih}\n`;
+            csvContent += `Margin,${margin}\n`;
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Laporan_Laba_Rugi_${tanggal.replace(/\s/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
         // --- FUNGSI FIREBASE: INVENTORY ---
         function loadInventoryFromFirebase() {
             if (!database) {
@@ -1047,6 +1086,7 @@
                 daftarSection.style.display = 'none';
                 inputSection.style.display = 'block';
                 document.getElementById('inputStokForm').reset();
+                document.getElementById('satuan').value = ''; // Reset satuan field
                 document.getElementById('messageArea').style.display = 'none';
             } else {
                 daftarSection.style.display = 'block';
@@ -1588,6 +1628,12 @@
                     showMessage('Gagal mengupdate stok: ' + error.message, 'error');
                 });
             });
+            
+            // Event listener untuk tombol Export Excel (CSV)
+            const exportButton = document.getElementById('export-excel-button');
+            if (exportButton) {
+                exportButton.addEventListener('click', exportLabaRugiToCSV);
+            }
         });
     </script>
 </body>
